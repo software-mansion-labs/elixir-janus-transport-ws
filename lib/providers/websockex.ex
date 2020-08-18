@@ -16,7 +16,7 @@ defmodule Janus.Transport.WS.Provider.WebSockex do
           {:connected, connection} -> {:ok, connection}
         after
           timeout ->
-            # ws might still try to connect, kill it to stop
+            # ws might still try to connect, kill so it can stop
             # websockex has no option to cancel connection (from what I've tried to find)
             Process.exit(ws, :kill)
             {:error, "connection timeout reached"}
