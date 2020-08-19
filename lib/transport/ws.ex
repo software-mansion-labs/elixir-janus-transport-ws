@@ -15,18 +15,18 @@ defmodule Janus.Transport.WS do
 
   Record.defrecordp(:state,
     connection: nil,
-    ws_provider: nil
+    adapter: nil
   )
 
   # Callbacks
 
   @impl true
-  def connect({url, ws_provider}) do
-    with {:ok, connection} <- ws_provider.connect(url, 5000, self()) do
+  def connect({url, adapter, opts}) do
+    with {:ok, connection} <- adapter.connect(url, self(), opts) do
       {:ok,
        state(
          connection: connection,
-         ws_provider: ws_provider
+         adapter: adapter
        )}
     else
       {:error, reason} ->
@@ -38,10 +38,10 @@ defmodule Janus.Transport.WS do
   def send(
         payload,
         _timeout,
-        state(connection: connection, ws_provider: ws_provider) = s
+        state(connection: connection, adapter: adapter) = s
       ) do
     withl encode: {:ok, payload} <- Jason.encode(payload),
-          send: :ok <- ws_provider.send(connection, payload) do
+          send: :ok <- adapter.send(connection, payload) do
       {:ok, s}
     else
       encode: {:error, reason} ->
