@@ -3,14 +3,15 @@ defmodule Janus.Transport.WS.Adapter do
   The adapter specification.
 
   Adapter is a module that takes part in communicating `Janus.Transport.WS` module
-  with lower level ws client (e.g. `:websockex` or `:gun`), sending and passing back messages, notifying about socket status change.
+  with lower level ws client (e.g. `:websockex`), sending and passing back messages, notifying about socket status change.
   It has to implement all of given callbacks:
-  - `c:Janus.Transport.WS.Adapter.connect/4`
-  - `c:Janus.Transport.WS.Adapter.send_payload/2`
+  - `c:Janus.Transport.WS.Adapter.connect/3`
+  - `c:Janus.Transport.WS.Adapter.send/2`
   - `c:Janus.Transport.WS.Adapter.disconnect/1`
 
   Every adapter should have its internal state as after `c:connect/3` callback
-  has been called `message_receiver` will not be passed again but must be remembered.
+  invocation `message_receiver` will not be passed again but must be remembered for incoming response messages from ws server.
+
   """
 
   @type connection_t :: pid()
@@ -27,7 +28,7 @@ defmodule Janus.Transport.WS.Adapter do
 
   ## Arguments
   - `url` - valid websocket url
-  - `message_receiver` - pid of process to which respond with messages incomming from socket and notifying about status
+  - `message_receiver` - pid of process to which respond with messages incomming from socket and notify about status changes
   - `opts` - options specific to adapter itself
   """
   @callback connect(url :: url_t(), message_receiver :: message_receiver_t(), opts :: Keyword.t()) ::
@@ -47,7 +48,10 @@ defmodule Janus.Transport.WS.Adapter do
   @doc """
   Closes given connection on demand.
 
-  The callback should be blocking.
+  Callback should notify message receiver about its status change with
+  ```elixir
+  notify_status(receiver, {:disconnected, "any arbitrary data"})
+  ```
 
   ## Arguments
   - `connection` - connection returned by `c:connect/3`
@@ -68,7 +72,6 @@ defmodule Janus.Transport.WS.Adapter do
   def forward_response(message_receiver, payload) when is_pid(message_receiver) do
     Kernel.send(message_receiver, {:ws_message, payload})
   end
-
 
   @doc """
   Helper funciton to notify given receiver with connection status change.

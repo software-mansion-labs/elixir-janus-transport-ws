@@ -1,7 +1,6 @@
 defmodule TestWebSocket.Handler do
   @behaviour :cowboy_websocket
 
-
   @impl true
   def init(request, state) do
     case :ets.whereis(:clients) do
@@ -22,8 +21,6 @@ defmodule TestWebSocket.Handler do
   def websocket_handle({:text, payload}, state) do
     {:reply, {:text, payload}, state}
   end
-
-
 
   def websocket_info(:stop, state) do
     {:stop, state}

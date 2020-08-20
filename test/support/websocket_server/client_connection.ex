@@ -1,4 +1,6 @@
 defmodule TestWebSocket.ClientConnection do
+  # agent for a single test use, used by websocet server to save current connection pid
+
   use Agent
 
   def start_link() do

@@ -14,15 +14,14 @@ defmodule TransportTest do
     %{connection: connection, state: state}
   end
 
-
-
   describe "connect should" do
     test "return ok on valid connection" do
       assert {:ok, {:state, connection, @adapter}} = WS.connect({@fake_url, @adapter, []})
     end
 
     test "return an error on adapter failure" do
-      assert {:error, {:connection, "fail test"}} = WS.connect({@fake_url, @adapter, [connection_fail: true]})
+      assert {:error, {:connection, "fail test"}} =
+               WS.connect({@fake_url, @adapter, [connection_fail: true]})
     end
   end
 

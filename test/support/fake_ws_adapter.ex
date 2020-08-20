@@ -7,7 +7,6 @@ defmodule FakeWSAdapter do
   use Janus.Transport.WS.Adapter
   use GenServer
 
-
   @impl true
   def connect(url, message_receiver, opts) do
     if opts[:connection_fail] do
@@ -18,7 +17,11 @@ defmodule FakeWSAdapter do
   end
 
   def start_link(url, message_receiver, opts) do
-    GenServer.start_link(__MODULE__, [url: url, message_receiver: message_receiver, opts: opts],  [])
+    GenServer.start_link(
+      __MODULE__,
+      [url: url, message_receiver: message_receiver, opts: opts],
+      []
+    )
   end
 
   @impl true
@@ -34,12 +37,10 @@ defmodule FakeWSAdapter do
     GenServer.cast(pid, {:notify_status, status})
   end
 
-
   @impl true
   def disconnect(pid) do
     GenServer.cast(pid, {:disconnect})
   end
-
 
   @impl true
   def init(args) do
@@ -49,6 +50,7 @@ defmodule FakeWSAdapter do
       opts: args[:opts],
       message_fail: args[:opts][:message_fail] || false
     }
+
     {:ok, state}
   end
 

@@ -1,17 +1,18 @@
 defmodule Janus.Transport.WS do
   @moduledoc """
-  Implements connecting to the Janus gateway over Web Socket.
+  Implements `Janus.Transport` behaviour for connecting with Janus gateway via websocket.
+
   It expects the following argument to the `c:connect/1` callback:
-  `{url, ws_provider}`, where:
-  * `url` - is a valid URL for ws connection to the gateway
-  * `ws_proivder` - is a module implementing behavior of `Janus.Transport.WS.Provider`
+  `{url, adapter, opts}`, where:
+  * `url` - is a valid URL for connecting with gateway
+  * `adapter` - is a module implementing behavior of `Janus.Transport.WS.Adapter`
+  * `opts` - arbitrary options specific to adapters
   """
 
   @behaviour Janus.Transport
 
   require Record
   use Bunch
-
 
   Record.defrecordp(:state,
     connection: nil,
@@ -52,10 +53,12 @@ defmodule Janus.Transport.WS do
     end
   end
 
-
-  # Should be sent by ws connection back
   @impl true
-  def handle_info({:response, payload}, s) do
+  def handle_info({:disconnected, connection_map}, state) do
+    {:stop, {:disconnected, connection_map}, state}
+  end
+
+  def handle_info({:ws_message, payload}, s) do
     with {:ok, payload_parsed} <- Jason.decode(payload) do
       {:ok, payload_parsed, s}
     else

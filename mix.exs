@@ -39,8 +39,7 @@ defmodule ElixirJanusTransportWs.MixProject do
       {:plug_cowboy, "~> 2.0", only: :test},
 
       # adapter clients
-      {:websockex, "~> 0.4.2", only: :test},
+      {:websockex, "~> 0.4.2", only: :test}
     ]
   end
-
 end

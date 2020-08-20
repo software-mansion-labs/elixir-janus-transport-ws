@@ -10,6 +10,7 @@ if Code.ensure_loaded?(WebSockex) do
     @impl true
     def connect(url, message_receiver, opts) do
       timeout = opts[:timeout] || 5000
+
       args = %{
         message_receiver: message_receiver,
         notify_on_connect: self()
@@ -37,7 +38,7 @@ if Code.ensure_loaded?(WebSockex) do
 
     @impl true
     def send(client, payload) do
-      if Process.info(client)do
+      if Process.info(client) do
         WebSockex.send_frame(client, {:text, payload})
       else
         {:error, :connection_down}
