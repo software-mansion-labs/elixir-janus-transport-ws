@@ -1,10 +1,5 @@
-defmodule WebSocket.Router do
+defmodule TestWebSocket.Router do
   use Plug.Router
-
-  # plug Plug.Parsers,
-  #   parsers: [:json],
-  #   pass: ["application/json"],
-  #   json_decoder: Jason
 
 
   plug :match
@@ -18,7 +13,7 @@ defmodule WebSocket.Router do
     dispatch = [
       {:_,
        [
-         {"/ws/[...]", WebSocket.Handler, []},
+         {"/ws/[...]", TestWebSocket.Handler, []},
        ]}
     ]
     port = opts[:port] || 4000

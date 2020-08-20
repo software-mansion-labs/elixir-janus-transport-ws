@@ -26,12 +26,20 @@ defmodule ElixirJanusTransportWs.MixProject do
       {:bunch, "~> 1.3"},
       {:jason, "~> 1.2"},
       {:elixir_janus, github: "software-mansion-labs/elixir-janus"},
-      {:mock, "~> 0.3.0", only: :test},
-      {:websockex, "~> 0.4.2"},
+
+      # DEV
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
+
+      # TESTING
+      {:mock, "~> 0.3.0", only: :test},
+
+      # cowboy websocket server
       {:cowboy, "~> 2.4", only: :test},
       {:plug, "~> 1.7", only: :test},
-      {:plug_cowboy, "~> 2.0", only: :test}
+      {:plug_cowboy, "~> 2.0", only: :test},
+
+      # adapter clients
+      {:websockex, "~> 0.4.2", only: :test},
     ]
   end
 

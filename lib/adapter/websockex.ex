@@ -1,14 +1,15 @@
-if Code.ensure_loaded?(WebSocex) do
+if Code.ensure_loaded?(WebSockex) do
   defmodule Janus.Transport.WS.Adapter.WebSockex do
     @moduledoc """
     Adapter for [WebSockex](https://github.com/Azolo/websockex).
     """
 
-    use Janus.Transport.WS.Provider
+    use Janus.Transport.WS.Adapter
     use WebSockex
 
     @impl true
-    def connect(url, message_receiver, timeout, _opts) do
+    def connect(url, message_receiver, opts) do
+      timeout = opts[:timeout] || 5000
       args = %{
         message_receiver: message_receiver,
         notify_on_connect: self()
@@ -19,13 +20,14 @@ if Code.ensure_loaded?(WebSocex) do
           # process have started but connection may still not be made
           # therefore wait for response from handle_connect callback
           receive do
-            {:connected, connection} -> {:ok, connection}
+            {:connected, _connection} ->
+              {:ok, ws}
           after
             timeout ->
               # ws might still try to connect, kill so it can stop
               # websockex has no option to cancel connection (from what I've tried to find)
               Process.exit(ws, :kill)
-              {:error, "connection timeout reached"}
+              {:error, :connection_timeout}
           end
 
         error ->
@@ -35,12 +37,16 @@ if Code.ensure_loaded?(WebSocex) do
 
     @impl true
     def send(client, payload) do
-      WebSockex.send_frame(client, {:text, payload})
+      if Process.info(client)do
+        WebSockex.send_frame(client, {:text, payload})
+      else
+        {:error, :connection_down}
+      end
     end
 
     @impl true
     def disconnect(client) do
-      send(client, :disconnect)
+      Kernel.send(client, :disconnect)
     end
 
     def start_link(url, state) do
@@ -58,13 +64,13 @@ if Code.ensure_loaded?(WebSocex) do
     end
 
     @impl true
-    def handle_disconnect(connection_status, %{reciever_pid: message_receiver} = state) do
+    def handle_disconnect(connection_status, %{message_receiver: message_receiver} = state) do
       notify_status(message_receiver, {:disconnected, connection_status})
       {:ok, state}
     end
 
     @impl true
-    def handle_frame({_type, msg}, %{reciever_pid: message_receiver} = state) do
+    def handle_frame({_type, msg}, %{message_receiver: message_receiver} = state) do
       forward_response(message_receiver, msg)
       {:ok, state}
     end
