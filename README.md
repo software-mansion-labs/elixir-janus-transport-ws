@@ -5,7 +5,7 @@ Transport is implemented via websockets.
 
 **WARNING**
 
-This package is experimental and is not yet published to hex.
+This package is experimental and is not released to hex.
 
 ## Adapters
 Package has been designed to easily change and update websocket's client providers when needed.

@@ -7,6 +7,8 @@ defmodule FakeWSAdapter do
   use Janus.Transport.WS.Adapter
   use GenServer
 
+  def fail_message, do: "fail"
+
   @impl true
   def connect(url, message_receiver, opts) do
     if opts[:connection_fail] do
@@ -44,16 +46,15 @@ defmodule FakeWSAdapter do
     state = %{
       url: args[:url],
       message_receiver: args[:message_receiver],
-      opts: args[:opts],
-      message_fail: args[:opts][:message_fail] || false
+      opts: args[:opts]
     }
 
     {:ok, state}
   end
 
   @impl true
-  def handle_call({:send, _payload}, _from, %{message_fail: fail} = state) do
-    if fail do
+  def handle_call({:send, payload}, _from, state) do
+    if payload == "\"fail\"" do
       {:reply, {:error, "send error"}, state}
     else
       {:reply, :ok, state}

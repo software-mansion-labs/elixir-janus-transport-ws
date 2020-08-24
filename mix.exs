@@ -46,7 +46,7 @@ defmodule ElixirJanusTransportWs.MixProject do
   defp docs do
     [
       extras: ["README.md"],
-      main: :readme
+      main: "readme"
     ]
   end
 end

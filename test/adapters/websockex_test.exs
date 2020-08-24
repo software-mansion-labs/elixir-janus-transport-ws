@@ -7,16 +7,25 @@ defmodule Janus.Transport.WS.Adapters.WebSocexTest do
 
   setup do
     Application.ensure_all_started(:websockex)
-
     TestWebSocket.ClientConnection.start_link()
+
     {:ok, server} = TestWebSocket.Server.start()
 
-    {:ok, connection} = Adapters.WebSockex.connect(@url, self(), [])
-    %{server: server, connection: connection}
+    on_exit(fn ->
+      TestWebSocket.Server.shutdown()
+    end)
+
+    %{server: server}
   end
 
   # testing websockex adapter against cowboy websocket server
   describe "websockex adapter should" do
+    setup do
+      {:ok, connection} = Adapters.WebSockex.connect(@url, self(), [])
+
+      %{connection: connection}
+    end
+
     test "connect with working remote server" do
       assert {:ok, connection} = Adapters.WebSockex.connect(@url, self(), [])
     end

@@ -51,7 +51,6 @@ defmodule Janus.Transport.WS.Adapter do
 
   The callback should synchronously return a new connection or error on failure.
 
-
   ## Arguments
   - `url` - valid websocket url
   - `message_receiver` - pid of incoming messages and status changes recipient
@@ -65,19 +64,14 @@ defmodule Janus.Transport.WS.Adapter do
   @doc """
   Synchronously sends payload via given websocket.
 
-  ## Arguments
-  - `websocket` - websocket returned by `c:connect/3`
-  - `payload` - encoded json payload
+  Payload should be already encoded.
   """
   @callback send(websocket :: websocket_t(), payload :: payload_t()) :: :ok | {:error, any}
 
   @doc """
-  Closes given connection on demand.
+  Closes given socket connection on demand.
 
-  The calblack should notify message receiver about its status change with `{:disconnected, "any arbitrary data"}`.
-
-  ## Arguments
-  - `websocket` - websocket returned by `c:connect/3`
+  The calblack should notify message receiver about its status change with `{:disconnected, "any arbitrary data"}` message.
   """
   @callback disconnect(websocket :: websocket_t()) :: :ok | {:error, any}
 
@@ -91,7 +85,7 @@ defmodule Janus.Transport.WS.Adapter do
   @doc """
   Helper function to forward message received via websocket to message reciever previously initialized during `c:connect/3`.
   """
-  @spec forward_response(message_receiver_t(), payload_t()) :: payload_t()
+  @spec forward_response(message_receiver_t(), payload_t()) :: any()
   def forward_response(message_receiver, payload) when is_pid(message_receiver) do
     Kernel.send(message_receiver, {:ws_message, payload})
   end
@@ -99,7 +93,7 @@ defmodule Janus.Transport.WS.Adapter do
   @doc """
   Helper funciton to notify given receiver with connection status change.
   """
-  @spec notify_status(status_receiver_t(), {atom(), any}) :: {atom(), any}
+  @spec notify_status(status_receiver_t(), {atom(), any}) :: any()
   def notify_status(receiver, {status, _info} = msg) when is_atom(status) and is_pid(receiver) do
     Kernel.send(receiver, msg)
   end

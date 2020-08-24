@@ -4,17 +4,30 @@ defmodule Janus.Transport.WS do
 
   It expects the following argument to the `c:connect/1` callback:
   `{url, adapter, opts}`, where:
-  * `url` - is a valid URL for connecting with gateway
-  * `adapter` - is a module implementing behavior of `Janus.Transport.WS.Adapter`
+  * `url` - a valid URL for connecting with gateway
+  * `adapter` - a module implementing behavior of `Janus.Transport.WS.Adapter`
   * `opts` - arbitrary options specific to adapters
 
+
   ## Example
+      # This example uses `EchoAdapter` example from `Janus.Transport.WS.Adapter` example.
+      iex> alias Janus.Transport.WS
+      iex> {:ok, state} = WS.connect({"ws://fake_url", EchoAdapter, []})
+
+      iex> {:ok, _} = WS.send(%{"hello" => "there"}, 0, state)
+      iex> msg = receive do msg -> msg end
+      iex> {:ok, %{"hello" => "there"}, state} = WS.handle_info(msg, state)
+
+      iex> {:state, connection, EchoAdapter} = state
+      iex> EchoAdapter.disconnect(connection)
+      iex> msg = receive do msg -> msg end
+      iex> {:stop, {:disconnected, _}, state} = WS.handle_info(msg, state)
   """
 
   @behaviour Janus.Transport
 
   require Record
-  use Bunch
+  require Logger
 
   Record.defrecordp(:state,
     connection: nil,
@@ -62,6 +75,10 @@ defmodule Janus.Transport.WS do
       {:ok, payload_parsed, s}
     else
       {:error, reason} ->
+        Logger.warn(
+          "[ #{__MODULE__} ] failed to parse incomming message with reason: #{inspect(reason)}"
+        )
+
         {:stop, {:parse_failed, payload, reason}, s}
     end
   end

@@ -4,6 +4,7 @@ defmodule TransportTest do
   alias Janus.Transport.WS
 
   @adapter FakeWSAdapter
+  @fail_message FakeWSAdapter.fail_message()
   @fake_url "ws://fake"
 
   @hello_message %{message: "hello"}
@@ -36,8 +37,8 @@ defmodule TransportTest do
     end
 
     test "return an error when adapter failed to send message" do
-      {:ok, state} = WS.connect({@fake_url, @adapter, [message_fail: true]})
-      assert {:error, {:send, _}, _} = WS.send(@hello_message, 0, state)
+      {:ok, state} = WS.connect({@fake_url, @adapter, []})
+      assert {:error, {:send, _}, _} = WS.send(@fail_message, 0, state)
     end
   end
 
