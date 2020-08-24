@@ -3,11 +3,6 @@ defmodule TestWebSocket.Handler do
 
   @impl true
   def init(request, state) do
-    case :ets.whereis(:clients) do
-      :undefined -> :ets.new(:clients, [:named_table, :public])
-      _ref -> nil
-    end
-
     {:cowboy_websocket, request, state}
   end
 

@@ -17,11 +17,8 @@ defmodule FakeWSAdapter do
   end
 
   def start_link(url, message_receiver, opts) do
-    GenServer.start_link(
-      __MODULE__,
-      [url: url, message_receiver: message_receiver, opts: opts],
-      []
-    )
+    args = [url: url, message_receiver: message_receiver, opts: opts]
+    GenServer.start_link(__MODULE__, args, [])
   end
 
   @impl true

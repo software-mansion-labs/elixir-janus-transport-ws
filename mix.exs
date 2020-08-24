@@ -7,8 +7,9 @@ defmodule ElixirJanusTransportWs.MixProject do
       version: "0.1.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
-      elixirc_paths: elixirc_paths(Mix.env())
+      docs: docs()
     ]
   end
 
@@ -23,9 +24,11 @@ defmodule ElixirJanusTransportWs.MixProject do
 
   defp deps do
     [
-      {:bunch, "~> 1.3"},
       {:jason, "~> 1.2"},
       {:elixir_janus, github: "software-mansion-labs/elixir-janus"},
+
+      # adapter clients
+      {:websockex, "~> 0.4.2", optional: true},
 
       # DEV
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
@@ -36,10 +39,14 @@ defmodule ElixirJanusTransportWs.MixProject do
       # cowboy websocket server
       {:cowboy, "~> 2.4", only: :test},
       {:plug, "~> 1.7", only: :test},
-      {:plug_cowboy, "~> 2.0", only: :test},
+      {:plug_cowboy, "~> 2.0", only: :test}
+    ]
+  end
 
-      # adapter clients
-      {:websockex, "~> 0.4.2", only: :test}
+  defp docs do
+    [
+      extras: ["README.md"],
+      main: :readme
     ]
   end
 end

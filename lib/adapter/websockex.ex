@@ -1,5 +1,5 @@
 if Code.ensure_loaded?(WebSockex) do
-  defmodule Janus.Transport.WS.Adapter.WebSockex do
+  defmodule Janus.Transport.WS.Adapters.WebSockex do
     @moduledoc """
     Adapter for [WebSockex](https://github.com/Azolo/websockex).
     """
@@ -31,7 +31,7 @@ if Code.ensure_loaded?(WebSockex) do
               {:error, :connection_timeout}
           end
 
-        error ->
+        {:error, _} = error ->
           error
       end
     end

@@ -1,9 +1,10 @@
 defmodule TestWebSocket.Server do
-  def get_url(port) do
+  @default_port 8081
+  def get_url(port \\ @default_port) do
     "ws://localhost:#{port}/ws"
   end
 
-  def start(port \\ 8081) do
+  def start(port \\ @default_port) do
     cowboy_server =
       Plug.Cowboy.http(
         WebSocket.Router,
@@ -17,6 +18,6 @@ defmodule TestWebSocket.Server do
         pid -> pid
       end
 
-    %{server: cowboy_server, url: get_url(port)}
+    {:ok, cowboy_server}
   end
 end

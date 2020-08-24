@@ -8,12 +8,6 @@ defmodule TransportTest do
 
   @hello_message %{message: "hello"}
 
-  setup_all do
-    {:ok, {:state, connection, @adapter} = state} = WS.connect({@fake_url, @adapter, []})
-
-    %{connection: connection, state: state}
-  end
-
   describe "connect should" do
     test "return ok on valid connection" do
       assert {:ok, {:state, connection, @adapter}} = WS.connect({@fake_url, @adapter, []})
@@ -26,14 +20,19 @@ defmodule TransportTest do
   end
 
   describe "send should" do
-    test "return ok on successfuly sent message" do
+    setup do
       {:ok, state} = WS.connect({@fake_url, @adapter, []})
+      %{state: state}
+    end
+
+    test "return ok on successfuly sent message", %{state: state} do
       assert {:ok, _} = WS.send(@hello_message, 0, state)
     end
 
-    test "return an error on invalid payload format" do
-      {:ok, state} = WS.connect({@fake_url, @adapter, []})
-      assert {:error, {:encode, _}, _} = WS.send(self(), 0, state)
+    test "return an error on invalid payload format", %{state: state} do
+      assert_raise Protocol.UndefinedError, fn ->
+        WS.send(self(), 0, state)
+      end
     end
 
     test "return an error when adapter failed to send message" do
@@ -43,18 +42,18 @@ defmodule TransportTest do
   end
 
   describe "ws transport should" do
-    test "receive messages returned by adapter" do
+    setup do
       {:ok, {:state, connection, @adapter}} = WS.connect({@fake_url, @adapter, []})
+      %{conn: connection}
+    end
 
+    test "receive messages returned by adapter", %{conn: connection} do
       @adapter.send_to_receiver(connection, "ok")
       assert_receive {:ws_message, "ok"}
     end
 
-    test "receives disconnect event from adapter" do
-      {:ok, {:state, connection, @adapter}} = WS.connect({@fake_url, @adapter, []})
-
+    test "receives disconnect event from adapter", %{conn: connection} do
       @adapter.disconnect(connection)
-
       assert_receive {:disconnected, _}
     end
   end

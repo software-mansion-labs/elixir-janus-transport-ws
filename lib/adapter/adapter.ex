@@ -1,20 +1,45 @@
 defmodule Janus.Transport.WS.Adapter do
   @moduledoc """
-  The adapter specification.
+  This module takes part in communicating `Janus.Transport.WS` module
+  with lower level WebSocket client (e.g. `:websockex`).
 
-  Adapter is a module that takes part in communicating `Janus.Transport.WS` module
-  with lower level ws client (e.g. `:websockex`), sending and passing back messages, notifying about socket status change.
-  It has to implement all of given callbacks:
-  - `c:Janus.Transport.WS.Adapter.connect/3`
-  - `c:Janus.Transport.WS.Adapter.send/2`
-  - `c:Janus.Transport.WS.Adapter.disconnect/1`
+  It is responsible for sending and passing back messages, notifying about socket status change.
 
-  Every adapter should have its internal state as after `c:connect/3` callback
-  invocation `message_receiver` will not be passed again but must be remembered for incoming response messages from ws server.
+  Sending messages is supposed to be synchronous while receiving is asynchronous.
+  Messages received from websocket should be forwarded to `message_receiver` process via `forward_response/2`.
 
+  ## Example
+  ```elixir
+  defmodule EchoAdapter do
+    use Janus.Transport.WS.Adapter
+
+    @impl true
+    def connect(url, receiver, _opts) do
+      {:ok, fake_socket} = Agent.start_link(fn -> receiver end)
+      {:ok, fake_socket}
+    end
+
+    @impl true
+    def send(fake_socket, payload) do
+      receiver = Agent.get(fake_socket, fn receiver -> receiver end)
+
+      forward_response(receiver, payload)
+      :ok
+    end
+
+    @impl true
+    def disconnect(fake_socket) do
+      receiver = Agent.get(fake_socket, fn receiver -> receiver end)
+      notify_status(receiver, {:disconnected, "disconnect request"})
+      :ok = Agent.stop(fake_socket)
+      :ok
+    end
+  end
+
+  ```
   """
 
-  @type connection_t :: pid()
+  @type websocket_t :: pid()
   @type url_t :: String.t()
   @type payload_t :: binary()
   @type timeout_t :: number()
@@ -24,39 +49,37 @@ defmodule Janus.Transport.WS.Adapter do
   @doc """
   Creates new websocket connection.
 
-  The callback should be blocking and eventually return valid connection or error on failure.
+  The callback should synchronously return a new connection or error on failure.
+
 
   ## Arguments
   - `url` - valid websocket url
-  - `message_receiver` - pid of process to which respond with messages incomming from socket and notify about status changes
+  - `message_receiver` - pid of incoming messages and status changes recipient
   - `opts` - options specific to adapter itself
+
+  Notice that `message_receiver` is passed only during this callback but should be used on every new websocket response and status change.
   """
   @callback connect(url :: url_t(), message_receiver :: message_receiver_t(), opts :: Keyword.t()) ::
-              {:ok, connection_t()} | {:error, any}
+              {:ok, websocket_t()} | {:error, any}
 
   @doc """
-  Sends payload via previously created connection.
-
-  The callback should be blocking.
+  Synchronously sends payload via given websocket.
 
   ## Arguments
-  - `connection` - connection returned by `c:connect/3`
+  - `websocket` - websocket returned by `c:connect/3`
   - `payload` - encoded json payload
   """
-  @callback send(connection :: connection_t(), payload :: payload_t()) :: :ok | {:error, any}
+  @callback send(websocket :: websocket_t(), payload :: payload_t()) :: :ok | {:error, any}
 
   @doc """
   Closes given connection on demand.
 
-  Callback should notify message receiver about its status change with
-  ```elixir
-  notify_status(receiver, {:disconnected, "any arbitrary data"})
-  ```
+  The calblack should notify message receiver about its status change with `{:disconnected, "any arbitrary data"}`.
 
   ## Arguments
-  - `connection` - connection returned by `c:connect/3`
+  - `websocket` - websocket returned by `c:connect/3`
   """
-  @callback disconnect(connection :: connection_t()) :: :ok | {:error, any}
+  @callback disconnect(websocket :: websocket_t()) :: :ok | {:error, any}
 
   defmacro __using__(_opts) do
     quote location: :keep do
@@ -68,7 +91,7 @@ defmodule Janus.Transport.WS.Adapter do
   @doc """
   Helper function to forward message received via websocket to message reciever previously initialized during `c:connect/3`.
   """
-  @spec forward_response(message_receiver_t(), payload_t()) :: :ok
+  @spec forward_response(message_receiver_t(), payload_t()) :: payload_t()
   def forward_response(message_receiver, payload) when is_pid(message_receiver) do
     Kernel.send(message_receiver, {:ws_message, payload})
   end
@@ -76,7 +99,7 @@ defmodule Janus.Transport.WS.Adapter do
   @doc """
   Helper funciton to notify given receiver with connection status change.
   """
-  @spec notify_status(status_receiver_t(), {atom(), any}) :: :ok
+  @spec notify_status(status_receiver_t(), {atom(), any}) :: {atom(), any}
   def notify_status(receiver, {status, _info} = msg) when is_atom(status) and is_pid(receiver) do
     Kernel.send(receiver, msg)
   end

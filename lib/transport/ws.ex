@@ -7,6 +7,8 @@ defmodule Janus.Transport.WS do
   * `url` - is a valid URL for connecting with gateway
   * `adapter` - is a module implementing behavior of `Janus.Transport.WS.Adapter`
   * `opts` - arbitrary options specific to adapters
+
+  ## Example
   """
 
   @behaviour Janus.Transport
@@ -41,15 +43,12 @@ defmodule Janus.Transport.WS do
         _timeout,
         state(connection: connection, adapter: adapter) = s
       ) do
-    withl encode: {:ok, payload} <- Jason.encode(payload),
-          send: :ok <- adapter.send(connection, payload) do
+    payload = Jason.encode!(payload)
+
+    with :ok <- adapter.send(connection, payload) do
       {:ok, s}
     else
-      encode: {:error, reason} ->
-        {:error, {:encode, reason}, s}
-
-      send: {:error, reason} ->
-        {:error, {:send, reason}, s}
+      {:error, reason} -> {:error, {:send, reason}, s}
     end
   end
 

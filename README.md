@@ -1,19 +1,31 @@
-# ElixirJanusTransportWs
+# Elixir Janus Transport WS
+This package implements transport behaviour from `Janus.Transport` module in [ Elixir Janus package ](https://github.com/software-mansion-labs/elixir-janus).
+Transport is implemented via websockets.
 
-**TODO: Add description**
 
-## Installation
+**WARNING**
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `elixir_janus_transport_ws` to your list of dependencies in `mix.exs`:
+This package is experimental and is not yet published to hex.
 
+## Adapters
+Package has been designed to easily change and update websocket's client providers when needed.
+Every client should have its own adapter module.
+To create one please go see `Janus.Transport.WS.Adapter` module.
+
+Adapter is compiled only when its client package is added along `elixir_janus_transport_ws` package inside `mix.exs` dependencies.
 ```elixir
-def deps do
+# e.g
+defp deps do
   [
-    {:elixir_janus_transport_ws, "~> 0.1.0"}
+    {:elixir_janus_transport_ws, "~> 0.1.0"},
+    {:websockex, "~> 0.4.2"} # <- can be replaced with any other implemented adapter's client
   ]
 end
 ```
+
+Currently implemented adapters:
+ - `Janus.Transport.WS.Adapters.WebSockex` - uses [WebSockex package](https://github.com/Azolo/websockex)
+
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can

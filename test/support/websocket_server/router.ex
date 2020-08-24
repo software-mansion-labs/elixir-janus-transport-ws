@@ -16,7 +16,7 @@ defmodule TestWebSocket.Router do
        ]}
     ]
 
-    port = opts[:port] || 4000
+    port = opts[:port] || 8088
 
     [port: port, dispatch: dispatch]
   end
