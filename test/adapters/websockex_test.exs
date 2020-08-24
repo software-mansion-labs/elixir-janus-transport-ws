@@ -5,7 +5,7 @@ defmodule Janus.Transport.WS.Adapters.WebSocexTest do
 
   @url TestWebSocket.Server.get_url()
 
-  setup do
+  setup_all do
     Application.ensure_all_started(:websockex)
     TestWebSocket.ClientConnection.start_link()
 
