@@ -36,8 +36,7 @@ defmodule TransportTest do
       end
     end
 
-    test "return an error when adapter failed to send message" do
-      {:ok, state} = WS.connect({@fake_url, @adapter, []})
+    test "return an error when adapter failed to send message", %{state: state} do
       assert {:error, {:send, _}, _} = WS.send(@fail_message, 0, state)
     end
   end
