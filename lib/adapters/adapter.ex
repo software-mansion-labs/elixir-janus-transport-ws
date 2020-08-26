@@ -15,8 +15,7 @@ defmodule Janus.Transport.WS.Adapter do
 
     @impl true
     def connect(url, receiver, _opts) do
-      {:ok, fake_socket} = Agent.start_link(fn -> receiver end)
-      {:ok, fake_socket}
+      Agent.start_link(fn -> receiver end)
     end
 
     @impl true

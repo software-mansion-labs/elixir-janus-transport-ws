@@ -14,12 +14,12 @@ defmodule FakeWSAdapter do
     if opts[:connection_fail] do
       {:error, "fail test"}
     else
-      start_link(url, message_receiver, opts)
+      start_link(url, message_receiver)
     end
   end
 
-  def start_link(url, message_receiver, opts) do
-    args = [url: url, message_receiver: message_receiver, opts: opts]
+  def start_link(url, message_receiver) do
+    args = [url: url, message_receiver: message_receiver]
     GenServer.start_link(__MODULE__, args, [])
   end
 
@@ -45,8 +45,7 @@ defmodule FakeWSAdapter do
   def init(args) do
     state = %{
       url: args[:url],
-      message_receiver: args[:message_receiver],
-      opts: args[:opts]
+      message_receiver: args[:message_receiver]
     }
 
     {:ok, state}

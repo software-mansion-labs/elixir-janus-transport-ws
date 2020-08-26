@@ -1,4 +1,4 @@
-defmodule ElixirJanusTransportWs.MixProject do
+defmodule Elixir.Janus.Transport.WS.MixProject do
   use Mix.Project
 
   def project do
@@ -31,11 +31,9 @@ defmodule ElixirJanusTransportWs.MixProject do
       {:websockex, "~> 0.4.2", optional: true},
 
       # DEV
-      {:ex_doc, "~> 0.22", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.22", only: [:test, :dev], runtime: false},
 
       # TESTING
-      {:mock, "~> 0.3.0", only: :test},
-
       # cowboy websocket server
       {:cowboy, "~> 2.4", only: :test},
       {:plug, "~> 1.7", only: :test},

@@ -58,15 +58,6 @@ defmodule Janus.Transport.WS.Adapters.WebSocexTest do
 
       assert_receive {:disconnected, _}
     end
-
-    test "return error on message send when connection is down", %{connection: connection} do
-      client = TestWebSocket.ClientConnection.get()
-      send(client, :stop)
-
-      assert_receive {:disconnected, _}
-
-      {:error, :connection_down} = Adapters.WebSockex.send(connection, "hey")
-    end
   end
 
   describe "Janus.Transport.WS when used with WebSockex should" do

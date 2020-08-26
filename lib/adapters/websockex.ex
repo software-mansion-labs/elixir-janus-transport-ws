@@ -16,46 +16,48 @@ if Code.ensure_loaded?(WebSockex) do
         notify_on_connect: self()
       }
 
-      case start_link(url, args) do
+      start_link(url, timeout, args)
+    end
+
+    @impl true
+    def send(client, payload) do
+      try do
+        case WebSockex.send_frame(client, {:text, payload}) do
+          :ok -> :ok
+          {:error, _reason} = error -> error
+        end
+      rescue
+        _ -> {:error, :connection_down}
+      end
+    end
+
+    @impl true
+    def disconnect(client) do
+      Kernel.send(client, :close)
+    end
+
+    defp start_link(url, timeout, args) do
+      websockex_opts = [
+        extra_headers: [{"Sec-WebSocket-Protocol", "janus-protocol"}]
+      ]
+
+      case WebSockex.start_link(url, __MODULE__, args, websockex_opts) do
         {:ok, ws} ->
-          # process have started but connection may still not be made
+          # process have started but connection may still not be established
           # therefore wait for response from handle_connect callback
           receive do
             {:connected, _connection} ->
               {:ok, ws}
           after
             timeout ->
-              # ws might still try to connect, kill so it can stop
-              # websockex has no option to cancel connection (from what I've tried to find)
-              Process.exit(ws, :kill)
+              # close connection no matter if it is still connecting or not
+              close(ws)
               {:error, :connection_timeout}
           end
 
         {:error, _} = error ->
           error
       end
-    end
-
-    @impl true
-    def send(client, payload) do
-      if Process.info(client) do
-        WebSockex.send_frame(client, {:text, payload})
-      else
-        {:error, :connection_down}
-      end
-    end
-
-    @impl true
-    def disconnect(client) do
-      Kernel.send(client, :disconnect)
-    end
-
-    def start_link(url, state) do
-      websockex_opts = [
-        extra_headers: [{"Sec-WebSocket-Protocol", "janus-protocol"}]
-      ]
-
-      WebSockex.start_link(url, __MODULE__, state, websockex_opts)
     end
 
     @impl true
@@ -77,8 +79,12 @@ if Code.ensure_loaded?(WebSockex) do
     end
 
     @impl true
-    def handle_info(:disconnect, state) do
+    def handle_info(:close, state) do
       {:close, state}
+    end
+
+    defp close(client) do
+      Kernel.send(client, :close)
     end
   end
 end

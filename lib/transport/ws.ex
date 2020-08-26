@@ -8,16 +8,13 @@ defmodule Janus.Transport.WS do
   * `adapter` - a module implementing behavior of `Janus.Transport.WS.Adapter`
   * `opts` - arbitrary options specific to adapters
 
-
   ## Example
-      # This example uses `EchoAdapter` example from `Janus.Transport.WS.Adapter` example.
+      # This example uses `EchoAdapter` from `Janus.Transport.WS.Adapter` example.
       iex> alias Janus.Transport.WS
       iex> {:ok, state} = WS.connect({"ws://fake_url", EchoAdapter, []})
-
       iex> {:ok, _} = WS.send(%{"hello" => "there"}, 0, state)
       iex> msg = receive do msg -> msg end
       iex> {:ok, %{"hello" => "there"}, state} = WS.handle_info(msg, state)
-
       iex> {:state, connection, EchoAdapter} = state
       iex> EchoAdapter.disconnect(connection)
       iex> msg = receive do msg -> msg end
@@ -39,11 +36,7 @@ defmodule Janus.Transport.WS do
   @impl true
   def connect({url, adapter, opts}) do
     with {:ok, connection} <- adapter.connect(url, self(), opts) do
-      {:ok,
-       state(
-         connection: connection,
-         adapter: adapter
-       )}
+      {:ok, state(connection: connection, adapter: adapter)}
     else
       {:error, reason} ->
         {:error, {:connection, reason}}
