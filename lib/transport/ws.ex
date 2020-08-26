@@ -47,14 +47,14 @@ defmodule Janus.Transport.WS do
   def send(
         payload,
         _timeout,
-        state(connection: connection, adapter: adapter) = s
+        state(connection: connection, adapter: adapter) = state
       ) do
     payload = Jason.encode!(payload)
 
     with :ok <- adapter.send(connection, payload) do
-      {:ok, s}
+      {:ok, state}
     else
-      {:error, reason} -> {:error, {:send, reason}, s}
+      {:error, reason} -> {:error, {:send, reason}, state}
     end
   end
 
@@ -63,16 +63,16 @@ defmodule Janus.Transport.WS do
     {:stop, {:disconnected, connection_map}, state}
   end
 
-  def handle_info({:ws_message, payload}, s) do
+  def handle_info({:ws_message, payload}, state) do
     with {:ok, payload_parsed} <- Jason.decode(payload) do
-      {:ok, payload_parsed, s}
+      {:ok, payload_parsed, state}
     else
       {:error, reason} ->
         Logger.warn(
           "[ #{__MODULE__} ] failed to parse incomming message with reason: #{inspect(reason)}"
         )
 
-        {:stop, {:parse_failed, payload, reason}, s}
+        {:stop, {:parse_failed, payload, reason}, state}
     end
   end
 end

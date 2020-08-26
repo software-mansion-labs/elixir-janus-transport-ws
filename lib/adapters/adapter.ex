@@ -46,7 +46,7 @@ defmodule Janus.Transport.WS.Adapter do
   @type status_receiver_t :: pid()
 
   @doc """
-  Creates new websocket connection.
+  Creates a new websocket connection.
 
   The callback should synchronously return a new connection or error on failure.
 
@@ -70,7 +70,7 @@ defmodule Janus.Transport.WS.Adapter do
   @doc """
   Closes given socket connection on demand.
 
-  The calblack should notify message receiver about its status change with `{:disconnected, "any arbitrary data"}` message.
+  The callback should notify the message receiver about its status change with `{:disconnected, "any arbitrary data"}` message.
   """
   @callback disconnect(websocket :: websocket_t()) :: :ok | {:error, any}
 
@@ -82,7 +82,7 @@ defmodule Janus.Transport.WS.Adapter do
   end
 
   @doc """
-  Helper function to forward message received via websocket to message reciever previously initialized during `c:connect/3`.
+  Helper function to forward the message received via websocket to message receiver previously initialized during `c:connect/3`.
   """
   @spec forward_response(message_receiver_t(), payload_t()) :: any()
   def forward_response(message_receiver, payload) when is_pid(message_receiver) do
@@ -90,7 +90,7 @@ defmodule Janus.Transport.WS.Adapter do
   end
 
   @doc """
-  Helper funciton to notify given receiver with connection status change.
+  Helper function to notify the receiver with connection status change.
   """
   @spec notify_status(status_receiver_t(), {atom(), any}) :: any()
   def notify_status(receiver, {status, _info} = msg) when is_atom(status) and is_pid(receiver) do
