@@ -49,7 +49,7 @@ defmodule TransportTest do
 
     test "receive messages returned by adapter", %{conn: connection} do
       @adapter.send_to_receiver(connection, "ok")
-      assert_receive {:ws_message, "ok"}
+      assert_receive {:ws_frame, "ok"}
     end
 
     test "receives disconnect event from adapter", %{conn: connection} do

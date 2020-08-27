@@ -8,6 +8,9 @@ defmodule Janus.Transport.WS do
   * `adapter` - a module implementing behavior of `Janus.Transport.WS.Adapter`
   * `opts` - arbitrary options specific to adapters
 
+  `opts` param will be extended with `extra_headers` field containing `Sec-WebSocket-Protocol` header
+  necessary to connect with Janus Gateway via WebSocket.
+
   ## Example
       # This example uses `EchoAdapter` from `Janus.Transport.WS.Adapter` example.
       iex> alias Janus.Transport.WS
@@ -35,6 +38,10 @@ defmodule Janus.Transport.WS do
 
   @impl true
   def connect({url, adapter, opts}) do
+    opts =
+      opts
+      |> Keyword.update(:extra_headers, [], &[{"Sec-WebSocket-Protocol", "janus-protocol"} | &1])
+
     with {:ok, connection} <- adapter.connect(url, self(), opts) do
       {:ok, state(connection: connection, adapter: adapter)}
     else
@@ -49,9 +56,9 @@ defmodule Janus.Transport.WS do
         _timeout,
         state(connection: connection, adapter: adapter) = state
       ) do
-    payload = Jason.encode!(payload)
+    frame = Jason.encode_to_iodata!(payload)
 
-    with :ok <- adapter.send(connection, payload) do
+    with :ok <- adapter.send(connection, frame) do
       {:ok, state}
     else
       {:error, reason} -> {:error, {:send, reason}, state}
@@ -63,16 +70,16 @@ defmodule Janus.Transport.WS do
     {:stop, {:disconnected, connection_map}, state}
   end
 
-  def handle_info({:ws_message, payload}, state) do
-    with {:ok, payload_parsed} <- Jason.decode(payload) do
-      {:ok, payload_parsed, state}
+  def handle_info({:ws_frame, frame}, state) do
+    with {:ok, payload} <- Jason.decode(frame) do
+      {:ok, payload, state}
     else
       {:error, reason} ->
         Logger.warn(
-          "[ #{__MODULE__} ] failed to parse incomming message with reason: #{inspect(reason)}"
+          "[ #{__MODULE__} ] failed to parse incoming frame with reason: #{inspect(reason)}"
         )
 
-        {:stop, {:parse_failed, payload, reason}, state}
+        {:stop, {:parse_failed, frame, reason}, state}
     end
   end
 end

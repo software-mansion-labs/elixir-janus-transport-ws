@@ -1,8 +1,7 @@
 defmodule FakeWSAdapter do
   @moduledoc false
-  # Fake websocket adapter for testing
-  # it imitates reciving and sending payload messages, connecting and disconnecting by passing
-  # proper options
+  # Fake WebSocket adapter for testing
+  # it imitates receiving and sending frames, connecting and disconnecting
 
   use Janus.Transport.WS.Adapter
   use GenServer
@@ -28,8 +27,8 @@ defmodule FakeWSAdapter do
     GenServer.call(pid, {:send, payload})
   end
 
-  def send_to_receiver(pid, payload) do
-    GenServer.cast(pid, {:send_to_receiver, payload})
+  def send_to_receiver(pid, frame) do
+    GenServer.cast(pid, {:send_to_receiver, frame})
   end
 
   def send_status_to_receiver(pid, status) do
@@ -53,15 +52,15 @@ defmodule FakeWSAdapter do
 
   @impl true
   def handle_call({:send, payload}, _from, state) do
-    if payload == "\"fail\"" do
+    if payload == Jason.encode_to_iodata!(fail_message()) do
       {:reply, {:error, "send error"}, state}
     else
       {:reply, :ok, state}
     end
   end
 
-  def handle_cast({:send_to_receiver, payload}, %{message_receiver: message_receiver} = state) do
-    forward_response(message_receiver, payload)
+  def handle_cast({:send_to_receiver, frame}, %{message_receiver: message_receiver} = state) do
+    forward_frame(message_receiver, frame)
     {:noreply, state}
   end
 
