@@ -1,11 +1,9 @@
 # Elixir Janus Transport WS
-This package implements transport behaviour from `Janus.Transport` module in [ Elixir Janus package ](https://github.com/software-mansion-labs/elixir-janus).
+This package implements transport behaviour of `Janus.Transport` module from [ Elixir Janus package ](https://github.com/software-mansion-labs/elixir-janus).
 Transport is implemented via websockets.
 
-
-**WARNING**
-
-This package is experimental and is not released to hex.
+## Disclaimer
+This package is experimental and is not yet released to hex.
 
 ## Adapters
 Package has been designed to easily change and update websocket's client providers when needed.
@@ -26,8 +24,12 @@ end
 Currently implemented adapters:
  - `Janus.Transport.WS.Adapters.WebSockex` - uses [WebSockex package](https://github.com/Azolo/websockex)
 
+## Copyright and License
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/elixir_janus_transport_ws](https://hexdocs.pm/elixir_janus_transport_ws).
+Copyright 2020, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=elixir-janus-transport-ws)
+
+[![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=elixir-janus-transport-ws)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=elixir-janus-transport-ws)
+
+Licensed under the [Apache License, Version 2.0](LICENSE)
+
 
