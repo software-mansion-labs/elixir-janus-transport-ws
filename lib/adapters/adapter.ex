@@ -1,9 +1,9 @@
 defmodule Janus.Transport.WS.Adapter do
   @moduledoc """
-  This module takes part in communicating `Janus.Transport.WS` module
+  This module specifies the behaviour for adapter modules communicating `Janus.Transport.WS` module
   with lower level WebSocket client (e.g. `:websockex`).
 
-  It is responsible for sending and passing back messages, notifying about socket status change.
+  An adapter is responsible for sending and passing WebSocket frames and notifying about socket status change.
 
   Sending messages is supposed to be synchronous while receiving is asynchronous.
   Messages received from websocket should be forwarded to `message_receiver` process via `forward_response/2`.
@@ -68,7 +68,7 @@ defmodule Janus.Transport.WS.Adapter do
   @callback send(websocket :: websocket_t(), payload :: payload_t()) :: :ok | {:error, any}
 
   @doc """
-  Closes given socket connection on demand.
+  Closes the WebSocket connection.
 
   The callback should notify the message receiver about its status change with `{:disconnected, "any arbitrary data"}` message.
   """
