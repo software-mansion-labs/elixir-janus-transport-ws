@@ -49,7 +49,7 @@ defmodule Janus.Transport.WS.Adapters.WebSocexTest do
     test "send message to remote echo server and get it back", %{connection: connection} do
       :ok = Adapters.WebSockex.send(connection, "hey")
 
-      assert_receive {:ws_message, "hey"}
+      assert_receive {:ws_frame, "hey"}
     end
 
     test "send disconnect message on connection end" do
@@ -57,15 +57,6 @@ defmodule Janus.Transport.WS.Adapters.WebSocexTest do
       send(client, :stop)
 
       assert_receive {:disconnected, _}
-    end
-
-    test "return error on message send when connection is down", %{connection: connection} do
-      client = TestWebSocket.ClientConnection.get()
-      send(client, :stop)
-
-      assert_receive {:disconnected, _}
-
-      {:error, :connection_down} = Adapters.WebSockex.send(connection, "hey")
     end
   end
 
@@ -83,12 +74,12 @@ defmodule Janus.Transport.WS.Adapters.WebSocexTest do
     end
 
     test "send and receive back message from adapter", %{state: state} do
-      message = %{"message" => "hello"}
+      payload = %{"message" => "hello"}
 
-      assert {:ok, state} = WS.send(message, 0, state)
-      assert_receive {:ws_message, _} = msg
+      assert {:ok, state} = WS.send(payload, 0, state)
+      assert_receive {:ws_frame, _} = msg
 
-      assert {:ok, ^message, state} = WS.handle_info(msg, state)
+      assert {:ok, ^payload, state} = WS.handle_info(msg, state)
     end
 
     test "not send invalid data format via adapter", %{state: state} do
