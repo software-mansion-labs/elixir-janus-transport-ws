@@ -58,7 +58,7 @@ defmodule Janus.Transport.WS do
       ) do
     frame = Jason.encode_to_iodata!(payload)
 
-    with :ok <- adapter.send(connection, frame) do
+    with :ok <- adapter.send(frame, connection) do
       {:ok, state}
     else
       {:error, reason} -> {:error, {:send, reason}, state}

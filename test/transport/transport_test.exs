@@ -26,7 +26,7 @@ defmodule TransportTest do
       %{state: state}
     end
 
-    test "return ok on successfuly sent message", %{state: state} do
+    test "return ok on successfully sent message", %{state: state} do
       assert {:ok, _} = WS.send(@hello_message, 0, state)
     end
 

@@ -14,41 +14,25 @@ defmodule Janus.Transport.WS.Adapter do
 
   ## Example
   ```elixir
-  # this example contains some pseudo code
   defmodule CustomAdapter do
     use Janus.Transport.WS.Adapter
 
     @impl true
     def connect(url, receiver, opts) do
-      start_websocket_connection(url, receiver, opts)
+      on_receive = fn msg -> forward_message(receiver, msg) end
+      ws_pid = SomeLibrary.spawn_websocket_connection(url, on_receive, opts)
+      %{websocket: ws_pid, receiver: receiver}
     end
 
     @impl true
-    def send(websocket, payload) do
-      send_frame(websocket, payload)
-    end
+    def send(payload, %{websocket: pid}) do
+      SomeLib.send_frame(pid, payload)
+     end
 
     @impl true
-    def disconnect(websocket) do
-      receiver = get_receiver(websocket)
-      :ok = disconnect_websocket(websocket)
-      notify_status(receiver, {:disconnected, "disconnect request"})
-      :ok
-    end
-
-    # creates WebSocket connection process that remembers receiver to which pass incoming messages
-    defp start_websocket_connection(url, receiver, opts)
-
-    # sends payload via previously created WebSocket connection
-    defp send_frame(websocket, payload)
-
-    # ends connection
-    defp disconnect_websocket(websocket)
-
-    # client specific callback forwarding message received via WebSocket to the receiver
-    def handle_frame(frame, state) do
-      receiver = get_receiver(state)
-      forward_frame(receiver, frame)
+    def disconnect(state) do
+      :ok = SomeLib.disconnect(state.pid)
+      notify_status(state.receiver, {:disconnected, "Disconnected request"})
     end
   end
   ```
@@ -78,7 +62,7 @@ defmodule Janus.Transport.WS.Adapter do
   @doc """
   Sends payload via given WebSocket.
   """
-  @callback send(websocket :: websocket_t(), payload :: payload_t()) :: :ok | {:error, any}
+  @callback send(payload :: payload_t(), websocket :: websocket_t()) :: :ok | {:error, any}
 
   @doc """
   Closes the WebSocket connection.

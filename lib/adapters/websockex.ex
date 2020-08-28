@@ -4,93 +4,101 @@ if Code.ensure_loaded?(WebSockex) do
     Adapter for [WebSockex](https://github.com/Azolo/websockex).
     """
 
-    use WebSockex
     use Janus.Transport.WS.Adapter
     alias Janus.Transport.WS.Adapter
 
+    defmodule WebSocketConnection do
+      use WebSockex
+
+      def send(connection, frame) do
+        try do
+          case WebSockex.send_frame(connection, {:text, frame}) do
+            :ok -> :ok
+            {:error, _reason} = error -> error
+          end
+        rescue
+          _ -> {:error, :connection_down}
+        end
+      end
+
+      def start_link(url, args) do
+        opts = [extra_headers: args[:extra_headers]]
+        timeout = args[:timeout]
+
+        args = Map.put(args, :notify_on_connect, self())
+
+        case WebSockex.start_link(url, __MODULE__, args, opts) do
+          {:ok, ws} ->
+            # process have started but connection may still not be established
+            # therefore wait for response from handle_connect callback
+            receive do
+              {:connected, _connection} ->
+                {:ok, ws}
+            after
+              timeout ->
+                # close connection no matter if it is still connecting or not
+                disconnect(ws)
+                {:error, :connection_timeout}
+            end
+
+          {:error, _} = error ->
+            error
+        end
+      end
+
+      @impl true
+      def handle_connect(connection, %{notify_on_connect: pid} = state) do
+        Adapter.notify_status(pid, {:connected, connection})
+        {:ok, state}
+      end
+
+      @impl true
+      def handle_disconnect(connection_status, %{on_disconnect: on_disconnect} = state) do
+        on_disconnect.(connection_status)
+        {:ok, state}
+      end
+
+      @impl true
+      def handle_frame({_type, frame}, %{on_receive: on_receive} = state) do
+        on_receive.(frame)
+        {:ok, state}
+      end
+
+      @impl true
+      def handle_info(:close, state) do
+        {:close, state}
+      end
+
+      def disconnect(connection) do
+        Kernel.send(connection, :close)
+      end
+    end
+
     @impl Adapter
-    def connect(url, message_receiver, opts) do
+    def connect(url, receiver, opts) do
       timeout = opts[:timeout] || 5000
       extra_headers = opts[:extra_headers] || []
 
       args = %{
-        message_receiver: message_receiver,
-        notify_on_connect: self(),
-        extra_headers: extra_headers
+        on_receive: fn frame -> forward_frame(receiver, frame) end,
+        on_disconnect: fn reason -> notify_status(receiver, {:disconnected, reason}) end,
+        extra_headers: extra_headers,
+        timeout: timeout
       }
 
-      start_link(url, timeout, args)
+      WebSocketConnection.start_link(url, args)
     end
 
     @impl Adapter
-    def send(client, payload) do
+    def send(payload, websocket) do
       # WebSockex does not support iodata as payload
       payload = IO.iodata_to_binary(payload)
-
-      try do
-        case WebSockex.send_frame(client, {:text, payload}) do
-          :ok -> :ok
-          {:error, _reason} = error -> error
-        end
-      rescue
-        _ -> {:error, :connection_down}
-      end
+      WebSocketConnection.send(websocket, payload)
     end
 
     @impl Adapter
-    def disconnect(client) do
-      Kernel.send(client, :close)
-    end
-
-    defp start_link(url, timeout, args) do
-      %{extra_headers: extra_headers} = args
-
-      opts = [extra_headers: extra_headers]
-
-      case WebSockex.start_link(url, __MODULE__, args, opts) do
-        {:ok, ws} ->
-          # process have started but connection may still not be established
-          # therefore wait for response from handle_connect callback
-          receive do
-            {:connected, _connection} ->
-              {:ok, ws}
-          after
-            timeout ->
-              # close connection no matter if it is still connecting or not
-              close(ws)
-              {:error, :connection_timeout}
-          end
-
-        {:error, _} = error ->
-          error
-      end
-    end
-
-    @impl WebSockex
-    def handle_connect(connection, %{notify_on_connect: pid} = state) do
-      notify_status(pid, {:connected, connection})
-      {:ok, state}
-    end
-
-    @impl WebSockex
-    def handle_disconnect(connection_status, %{message_receiver: message_receiver} = state) do
-      notify_status(message_receiver, {:disconnected, connection_status})
-      {:ok, state}
-    end
-
-    @impl WebSockex
-    def handle_frame({_type, frame}, %{message_receiver: message_receiver} = state) do
-      forward_frame(message_receiver, frame)
-      {:ok, state}
-    end
-
-    @impl WebSockex
-    def handle_info(:close, state) do
-      {:close, state}
-    end
-
-    defp close(client) do
-      Kernel.send(client, :close)
+    def disconnect(websocket) do
+      WebSocketConnection.disconnect(websocket)
     end
   end
 end
