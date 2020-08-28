@@ -38,7 +38,7 @@ defmodule Janus.Transport.WS.Adapter do
   ```
   """
 
-  @type websocket_t :: pid()
+  @type websocket_t :: any()
   @type url_t :: String.t()
   @type payload_t :: iodata()
   @type timeout_t :: number()

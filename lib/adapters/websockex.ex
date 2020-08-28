@@ -8,6 +8,7 @@ if Code.ensure_loaded?(WebSockex) do
     alias Janus.Transport.WS.Adapter
 
     defmodule WebSocketConnection do
+      @moduledoc false
       use WebSockex
 
       def send(connection, frame) do
@@ -48,19 +49,19 @@ if Code.ensure_loaded?(WebSockex) do
 
       @impl true
       def handle_connect(connection, %{notify_on_connect: pid} = state) do
-        Adapter.notify_status(pid, {:connected, connection})
+        notify_status(pid, {:connected, connection})
         {:ok, state}
       end
 
       @impl true
-      def handle_disconnect(connection_status, %{on_disconnect: on_disconnect} = state) do
-        on_disconnect.(connection_status)
+      def handle_disconnect(connection_status, %{receiver: receiver} = state) do
+        notify_status(receiver, {:disconnected, connection_status})
         {:ok, state}
       end
 
       @impl true
-      def handle_frame({_type, frame}, %{on_receive: on_receive} = state) do
-        on_receive.(frame)
+      def handle_frame({_type, frame}, %{receiver: receiver} = state) do
+        forward_frame(receiver, frame)
         {:ok, state}
       end
 
@@ -80,8 +81,7 @@ if Code.ensure_loaded?(WebSockex) do
       extra_headers = opts[:extra_headers] || []
 
       args = %{
-        on_receive: fn frame -> forward_frame(receiver, frame) end,
-        on_disconnect: fn reason -> notify_status(receiver, {:disconnected, reason}) end,
+        receiver: receiver,
         extra_headers: extra_headers,
         timeout: timeout
       }
