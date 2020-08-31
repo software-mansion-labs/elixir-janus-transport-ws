@@ -82,4 +82,10 @@ defmodule Janus.Transport.WS do
         {:stop, {:parse_failed, frame, reason}, state}
     end
   end
+
+  @impl true
+  def keepalive_interval() do
+    # Janus Gateway timeouts session after 60 seconds of inactivity so set keepalive interval to 30 seconds
+    30_000
+  end
 end
