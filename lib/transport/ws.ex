@@ -38,9 +38,11 @@ defmodule Janus.Transport.WS do
 
   @impl true
   def connect({url, adapter, opts}) do
+    janus_protocol = {"Sec-WebSocket-Protocol", "janus-protocol"}
+
     opts =
       opts
-      |> Keyword.update(:extra_headers, [], &[{"Sec-WebSocket-Protocol", "janus-protocol"} | &1])
+      |> Keyword.update(:extra_headers, [janus_protocol], &[janus_protocol | &1])
 
     with {:ok, connection} <- adapter.connect(url, self(), opts) do
       {:ok, state(connection: connection, adapter: adapter)}
