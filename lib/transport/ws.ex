@@ -9,7 +9,7 @@ defmodule Janus.Transport.WS do
   * `opts` - arbitrary options specific to adapters
 
   `opts` param will be extended with `extra_headers` field containing `Sec-WebSocket-Protocol` header
-  necessary to connect with Janus Gateway via WebSocket.
+  necessary to connect with Janus Gateway via WebSocket, based on `admin_api?` option it is either `janus-admin-protocol` or `janus-protocol`, defaults to `janus-protocol`.
 
   ## Example
       # This example uses `EchoAdapter` from `Janus.Transport.WS.Adapter` example.
@@ -38,7 +38,14 @@ defmodule Janus.Transport.WS do
 
   @impl true
   def connect({url, adapter, opts}) do
-    janus_protocol = {"Sec-WebSocket-Protocol", "janus-protocol"}
+    admin_api? = opts[:admin_api?] || false
+
+    janus_protocol =
+      if admin_api? do
+        {"Sec-WebSocket-Protocol", "janus-admin-protocol"}
+      else
+        {"Sec-WebSocket-Protocol", "janus-protocol"}
+      end
 
     opts =
       opts
