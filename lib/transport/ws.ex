@@ -9,7 +9,7 @@ defmodule Janus.Transport.WS do
   * `opts` - arbitrary options specific to adapters
 
   `opts` param will be extended with `extra_headers` field containing `Sec-WebSocket-Protocol` header
-  necessary to connect with Janus Gateway via WebSocket.
+  necessary to connect with Janus Gateway via WebSocket, based on `admin_api?` option it is either `janus-admin-protocol` or `janus-protocol`, defaults to `janus-protocol`.
 
   ## Example
       # This example uses `EchoAdapter` from `Janus.Transport.WS.Adapter` example.
@@ -38,9 +38,18 @@ defmodule Janus.Transport.WS do
 
   @impl true
   def connect({url, adapter, opts}) do
+    admin_api? = opts[:admin_api?] || false
+
+    janus_protocol =
+      if admin_api? do
+        {"Sec-WebSocket-Protocol", "janus-admin-protocol"}
+      else
+        {"Sec-WebSocket-Protocol", "janus-protocol"}
+      end
+
     opts =
       opts
-      |> Keyword.update(:extra_headers, [], &[{"Sec-WebSocket-Protocol", "janus-protocol"} | &1])
+      |> Keyword.update(:extra_headers, [janus_protocol], &[janus_protocol | &1])
 
     with {:ok, connection} <- adapter.connect(url, self(), opts) do
       {:ok, state(connection: connection, adapter: adapter)}
@@ -58,7 +67,7 @@ defmodule Janus.Transport.WS do
       ) do
     frame = Jason.encode_to_iodata!(payload)
 
-    with :ok <- adapter.send(connection, frame) do
+    with :ok <- adapter.send(frame, connection) do
       {:ok, state}
     else
       {:error, reason} -> {:error, {:send, reason}, state}
@@ -81,5 +90,11 @@ defmodule Janus.Transport.WS do
 
         {:stop, {:parse_failed, frame, reason}, state}
     end
+  end
+
+  @impl true
+  def keepalive_interval() do
+    # Janus Gateway timeouts session after 60 seconds of inactivity so set keepalive interval to 30 seconds
+    30_000
   end
 end

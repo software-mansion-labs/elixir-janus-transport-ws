@@ -23,7 +23,7 @@ defmodule FakeWSAdapter do
   end
 
   @impl true
-  def send(pid, payload) do
+  def send(payload, pid) do
     GenServer.call(pid, {:send, payload})
   end
 

@@ -47,7 +47,7 @@ defmodule Janus.Transport.WS.Adapters.WebSocexTest do
     end
 
     test "send message to remote echo server and get it back", %{connection: connection} do
-      :ok = Adapters.WebSockex.send(connection, "hey")
+      :ok = Adapters.WebSockex.send("hey", connection)
 
       assert_receive {:ws_frame, "hey"}
     end
