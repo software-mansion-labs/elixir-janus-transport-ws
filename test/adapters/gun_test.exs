@@ -32,11 +32,11 @@ defmodule Janus.Transport.WS.Adapters.GunTest do
     end
 
     test "return error on invalid url" do
-      assert {:error, :test} = Gun.connect("invalid_url", self(), [])
+      assert {:error, :invalid_url} = Gun.connect("invalid_url", self(), [])
     end
 
     test "return error on connection failure" do
-      assert {:error, :test} = Gun.connect("ws://no_server", self(), [])
+      assert {:error, :invalid_url} = Gun.connect("ws://no_server", self(), [])
     end
 
     test "disconnect on demand", %{connection: connection} do
@@ -46,7 +46,7 @@ defmodule Janus.Transport.WS.Adapters.GunTest do
     end
 
     test "send message to remote echo server and get it back", %{connection: connection} do
-      :ok = Gun.send(connection, "hey")
+      :ok = Gun.send("hey", connection)
 
       assert_receive {:ws_frame, "hey"}
     end

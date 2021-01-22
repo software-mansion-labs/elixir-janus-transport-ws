@@ -1,4 +1,4 @@
-defmodule Janus.Transport.WS.Adapters.WebSocexTest do
+defmodule Janus.Transport.WS.Adapters.WebSockexTest do
   use ExUnit.Case
 
   alias Janus.Transport.WS.Adapters
