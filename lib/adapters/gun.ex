@@ -5,6 +5,8 @@ if Code.ensure_loaded?(:gun) do
     use Janus.Transport.WS.Adapter
     alias Janus.Transport.WS.Adapter
 
+    require Logger
+
     defmodule State do
       @type t :: %__MODULE__{
               connection: pid(),
@@ -106,14 +108,13 @@ if Code.ensure_loaded?(:gun) do
     end
 
     # ignore protocol and try to connect without tsl
-    defp create_ws_connection([_protocol, host, port, endpoint], timeout, %{
+    defp create_ws_connection([_protocol, host, port, path], timeout, %{
            extra_headers: extra_headers
          }) do
-      with {:ok, conn} <- :gun.open(String.to_charlist(host), port, %{connect_timeout: timeout}) do
-        Process.monitor(conn)
-        {:ok, _protocol} = :gun.await_up(conn)
-
-        :gun.ws_upgrade(conn, "/" <> endpoint, extra_headers)
+      with {:ok, conn} <- :gun.open(String.to_charlist(host), port, %{connect_timeout: timeout}),
+           _ref <- Process.monitor(conn),
+           {:ok, _protocol} <- :gun.await_up(conn) do
+        :gun.ws_upgrade(conn, path, extra_headers)
 
         receive do
           {:gun_upgrade, conn, _stream_ref, [<<"websocket">>], _headers} ->
@@ -134,14 +135,24 @@ if Code.ensure_loaded?(:gun) do
       end
     end
 
-    defp parse_url(url) do
-      case Regex.run(~r/(ws|wss):\/\/(.+):([0-9]+)\/(.*)/, url) do
-        nil ->
+    def parse_url(url) do
+      case URI.parse(url) do
+        %URI{
+          scheme: "ws",
+          host: host,
+          port: port,
+          path: path
+        } ->
+          ["ws", host, port || 80, path || "/"]
+
+        %URI{
+          scheme: "wss"
+        } ->
+          Logger.error("[#{inspect(__MODULE__)}] wss schema is not supported")
           {:error, :invalid_url}
 
-        [_, protocol, host, port, endpoint] ->
-          {port, _} = Integer.parse(port)
-          [protocol, host, port, endpoint]
+        _ ->
+          {:error, :invalid_url}
       end
     end
   end

@@ -36,7 +36,7 @@ defmodule Janus.Transport.WS.Adapters.GunTest do
     end
 
     test "return error on connection failure" do
-      assert {:error, :invalid_url} = Gun.connect("ws://no_server", self(), [])
+      assert {:error, :timeout} = Gun.connect("ws://no_server", self(), [])
     end
 
     test "disconnect on demand", %{connection: connection} do
