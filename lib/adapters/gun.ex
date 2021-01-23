@@ -38,6 +38,7 @@ if Code.ensure_loaded?(:gun) do
 
     @impl Adapter
     def send(frame, client) do
+      frame = IO.iodata_to_binary(frame)
       GenServer.cast(client, {:send, frame})
     end
 
@@ -101,23 +102,36 @@ if Code.ensure_loaded?(:gun) do
 
     def handle_info(
           {:DOWN, _ref, :process, conn, reason},
-          %{connection: conn, message_receiver: receiver} = state
+          %State{connection: conn, receiver: receiver} = state
         ) do
       notify_status(receiver, {:disconnected, reason})
-      {:stop, {:connection, reason}, state}
+      {:stop, state}
     end
 
     # ignore protocol and try to connect without tsl
     defp create_ws_connection([_protocol, host, port, path], timeout, %{
            extra_headers: extra_headers
          }) do
-      with {:ok, conn} <- :gun.open(String.to_charlist(host), port, %{connect_timeout: timeout}),
+      with {:ok, conn} <-
+             :gun.open(String.to_charlist(host), port, %{
+               transport: :tcp,
+               connect_timeout: timeout
+             }),
            _ref <- Process.monitor(conn),
            {:ok, _protocol} <- :gun.await_up(conn) do
-        :gun.ws_upgrade(conn, path, extra_headers)
+        protocol = parse_sec_protocol(extra_headers)
+
+        options =
+          unless is_nil(protocol) do
+            %{protocols: [protocol]}
+          else
+            %{}
+          end
+
+        :gun.ws_upgrade(conn, path, extra_headers, options)
 
         receive do
-          {:gun_upgrade, conn, _stream_ref, [<<"websocket">>], _headers} ->
+          {:gun_upgrade, conn, _stream_ref, ["websocket"], _headers} ->
             {:connected, conn}
 
           {:gun_response, _conn, _, _, _status, _} ->
@@ -135,7 +149,17 @@ if Code.ensure_loaded?(:gun) do
       end
     end
 
-    def parse_url(url) do
+    def parse_sec_protocol(headers) do
+      sec_protocols_keys = ["sec-websocket-protocol", "Sec-WebSocket-Protocol"]
+
+      protocol = headers |> Enum.find(fn {key, _val} -> key in sec_protocols_keys end)
+
+      with {_key, value} <- protocol do
+        {value, :gun_ws_h}
+      end
+    end
+
+    defp parse_url(url) do
       case URI.parse(url) do
         %URI{
           scheme: "ws",
