@@ -107,6 +107,19 @@ if Code.ensure_loaded?(:gun) do
       {:stop, state}
     end
 
+    def handle_info(
+          {:gun_error, conn, _ref, reason},
+          %State{connection: conn, receiver: receiver} = state
+        ) do
+      notify_status(receiver, {:disconnected, reason})
+      :ok = :gun.close(conn)
+      {:stop, state}
+    end
+
+    def handle_info({:gun_error, conn, reason}, state) do
+      handle_info({:gun_error, conn, nil, reason}, state)
+    end
+
     defp create_ws_connection([protocol, host, port, path], timeout, %{
            extra_headers: extra_headers
          }) do
