@@ -1,12 +1,13 @@
-defmodule Janus.Transport.WS.Adapters.WebSockexTest do
+defmodule Janus.Transport.WS.Adapters.GunTest do
   use ExUnit.Case
 
   alias Janus.Transport.WS.Adapters
+  alias Janus.Transport.WS.Adapters.Gun
 
   @url TestWebSocket.Server.get_url()
 
   setup_all do
-    Application.ensure_all_started(:websockex)
+    Application.ensure_all_started(:gun)
     TestWebSocket.ClientConnection.start_link()
 
     {:ok, server} = TestWebSocket.Server.start()
@@ -18,36 +19,34 @@ defmodule Janus.Transport.WS.Adapters.WebSockexTest do
     %{server: server}
   end
 
-  # testing websockex adapter against cowboy websocket server
-  describe "websockex adapter should" do
+  # testing gun adapter against cowboy websocket server
+  describe "gun adapter should" do
     setup do
-      {:ok, connection} = Adapters.WebSockex.connect(@url, self(), [])
+      {:ok, connection} = Gun.connect(@url, self(), [])
 
       %{connection: connection}
     end
 
     test "connect with working remote server" do
-      assert {:ok, connection} = Adapters.WebSockex.connect(@url, self(), [])
+      assert {:ok, connection} = Gun.connect(@url, self(), [])
     end
 
     test "return error on invalid url" do
-      assert {:error, %WebSockex.URLError{}} =
-               Adapters.WebSockex.connect("invalid_url", self(), [])
+      assert {:error, :invalid_url} = Gun.connect("invalid_url", self(), [])
     end
 
     test "return error on connection failure" do
-      assert {:error, %WebSockex.ConnError{}} =
-               Adapters.WebSockex.connect("ws://no_server", self(), [])
+      assert {:error, :timeout} = Gun.connect("ws://no_server", self(), [])
     end
 
     test "disconnect on demand", %{connection: connection} do
-      Adapters.WebSockex.disconnect(connection)
+      Gun.disconnect(connection)
 
       assert_receive {:disconnected, _}
     end
 
     test "send message to remote echo server and get it back", %{connection: connection} do
-      :ok = Adapters.WebSockex.send("hey", connection)
+      :ok = Gun.send("hey", connection)
 
       assert_receive {:ws_frame, "hey"}
     end
@@ -60,11 +59,11 @@ defmodule Janus.Transport.WS.Adapters.WebSockexTest do
     end
   end
 
-  describe "Janus.Transport.WS when used with WebSockex should" do
+  describe "Janus.Transport.WS when used with Gun should" do
     alias Janus.Transport.WS
 
     setup do
-      {:ok, {:state, _connection, _} = state} = WS.connect({@url, Adapters.WebSockex, []})
+      {:ok, {:state, _connection, _} = state} = WS.connect({@url, Adapters.Gun, []})
       %{state: state}
     end
 

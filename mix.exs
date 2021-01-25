@@ -40,6 +40,7 @@ defmodule Elixir.Janus.Transport.WS.MixProject do
 
       # adapter clients
       {:websockex, "~> 0.4.2", optional: true},
+      {:gun, "~> 1.3", optional: true},
 
       # DEV
       {:ex_doc, "~> 0.22", only: [:test, :dev], runtime: false},
