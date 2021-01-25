@@ -38,7 +38,6 @@ if Code.ensure_loaded?(:gun) do
 
     @impl Adapter
     def send(frame, client) do
-      frame = IO.iodata_to_binary(frame)
       GenServer.cast(client, {:send, frame})
     end
 
@@ -60,7 +59,7 @@ if Code.ensure_loaded?(:gun) do
       with [_protocol, _host, _port, _endpoint] = conn_params <- parse_url(url) do
         case create_ws_connection(conn_params, timeout, args) do
           {:connected, conn} ->
-            {:ok, %State{connection: conn, receiver: args[:message_receiver]}}
+            {:ok, %State{connection: conn, receiver: args.message_receiver}}
 
           {:error, reason} ->
             {:stop, reason}
@@ -101,23 +100,27 @@ if Code.ensure_loaded?(:gun) do
     end
 
     def handle_info(
-          {:DOWN, _ref, :process, conn, reason},
-          %State{connection: conn, receiver: receiver} = state
+          {:gun_down, _, _, reason, _, _},
+          %State{receiver: receiver} = state
         ) do
       notify_status(receiver, {:disconnected, reason})
       {:stop, state}
     end
 
-    # ignore protocol and try to connect without tsl
-    defp create_ws_connection([_protocol, host, port, path], timeout, %{
+    defp create_ws_connection([protocol, host, port, path], timeout, %{
            extra_headers: extra_headers
          }) do
+      transport =
+        case protocol do
+          "ws" -> :tcp
+          "wss" -> :tls
+        end
+
       with {:ok, conn} <-
              :gun.open(String.to_charlist(host), port, %{
-               transport: :tcp,
+               transport: transport,
                connect_timeout: timeout
              }),
-           _ref <- Process.monitor(conn),
            {:ok, _protocol} <- :gun.await_up(conn) do
         protocol = parse_sec_protocol(extra_headers)
 
@@ -154,26 +157,28 @@ if Code.ensure_loaded?(:gun) do
 
       protocol = headers |> Enum.find(fn {key, _val} -> key in sec_protocols_keys end)
 
-      with {_key, value} <- protocol do
-        {value, :gun_ws_h}
+      case protocol do
+        {_key, value} -> {value, :gun_ws_h}
+        _ -> nil
       end
     end
 
     defp parse_url(url) do
       case URI.parse(url) do
         %URI{
-          scheme: "ws",
+          scheme: protocol,
           host: host,
           port: port,
           path: path
-        } ->
-          ["ws", host, port || 80, path || "/"]
+        }
+        when protocol in ["ws", "wss"] ->
+          default_port =
+            case protocol do
+              "ws" -> 80
+              "wss" -> 433
+            end
 
-        %URI{
-          scheme: "wss"
-        } ->
-          Logger.error("[#{inspect(__MODULE__)}] wss schema is not supported")
-          {:error, :invalid_url}
+          [protocol, host, port || default_port, path || "/"]
 
         _ ->
           {:error, :invalid_url}

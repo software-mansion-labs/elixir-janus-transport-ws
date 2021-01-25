@@ -24,6 +24,8 @@ defmodule Janus.Transport.WS do
       iex> {:stop, {:disconnected, _}, state} = WS.handle_info(msg, state)
   """
 
+  # TODO: instead of passing sec protocol inside `extra_headers` field to the adapter add an explicit `protocols` option
+
   @behaviour Janus.Transport
 
   require Record
