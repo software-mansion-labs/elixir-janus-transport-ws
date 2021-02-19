@@ -100,20 +100,13 @@ if Code.ensure_loaded?(:gun) do
     end
 
     def handle_info(
-          {:gun_down, _, _, reason, _, _},
-          %State{receiver: receiver} = state
-        ) do
-      notify_status(receiver, {:disconnected, reason})
-      {:stop, state}
-    end
-
-    def handle_info(
-          {:gun_error, conn, _ref, reason},
+          {message, conn, _ref, reason},
           %State{connection: conn, receiver: receiver} = state
-        ) do
+        )
+        when message in [:gun_down, :gun_error] do
       notify_status(receiver, {:disconnected, reason})
       :ok = :gun.close(conn)
-      {:stop, state}
+      {:stop, {:disconnected, reason}, state}
     end
 
     def handle_info({:gun_error, conn, reason}, state) do
