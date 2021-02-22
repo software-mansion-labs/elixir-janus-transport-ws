@@ -21,7 +21,7 @@ defmodule Janus.Transport.WS do
       iex> {:state, connection, EchoAdapter} = state
       iex> EchoAdapter.disconnect(connection)
       iex> msg = receive do msg -> msg end
-      iex> {:stop, {:disconnected, _}, state} = WS.handle_info(msg, state)
+      iex> {:error, {:disconnected, _}, state} = WS.handle_info(msg, state)
   """
 
   # TODO: instead of passing sec protocol inside `extra_headers` field to the adapter add an explicit `protocols` option
@@ -78,7 +78,7 @@ defmodule Janus.Transport.WS do
 
   @impl true
   def handle_info({:disconnected, connection_map}, state) do
-    {:stop, {:disconnected, connection_map}, state}
+    {:error, {:disconnected, connection_map}, state}
   end
 
   def handle_info({:ws_frame, frame}, state) do
@@ -90,7 +90,7 @@ defmodule Janus.Transport.WS do
           "[ #{__MODULE__} ] failed to parse incoming frame with reason: #{inspect(reason)}"
         )
 
-        {:stop, {:parse_failed, frame, reason}, state}
+        {:error, {:parse_failed, frame, reason}, state}
     end
   end
 

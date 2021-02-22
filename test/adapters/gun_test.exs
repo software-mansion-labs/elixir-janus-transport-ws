@@ -28,7 +28,7 @@ defmodule Janus.Transport.WS.Adapters.GunTest do
     end
 
     test "connect with working remote server" do
-      assert {:ok, connection} = Gun.connect(@url, self(), [])
+      assert {:ok, _connection} = Gun.connect(@url, self(), [])
     end
 
     test "return error on invalid url" do
@@ -69,7 +69,7 @@ defmodule Janus.Transport.WS.Adapters.GunTest do
 
     test "stop on adapter disconnected message" do
       msg = {:disconnected, "disconnect"}
-      {:stop, {:disconnected, _}, _} = WS.handle_info(msg, %{})
+      {:error, {:disconnected, _}, _} = WS.handle_info(msg, %{})
     end
 
     test "send and receive back message from adapter", %{state: state} do
@@ -78,7 +78,7 @@ defmodule Janus.Transport.WS.Adapters.GunTest do
       assert {:ok, state} = WS.send(payload, 0, state)
       assert_receive {:ws_frame, _} = msg
 
-      assert {:ok, ^payload, state} = WS.handle_info(msg, state)
+      assert {:ok, ^payload, _state} = WS.handle_info(msg, state)
     end
 
     test "not send invalid data format via adapter", %{state: state} do
