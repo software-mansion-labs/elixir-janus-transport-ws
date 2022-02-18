@@ -2,7 +2,7 @@ defmodule Janus.Transport.WS do
   @moduledoc """
   Implements `Janus.Transport` behaviour for connecting with Janus gateway via WebSocket.
 
-  It expects the following argument to the `c:connect/1` callback:
+  It expects the following argument to the `c:Janus.Transport.connect/1` callback:
   `{url, adapter, opts}`, where:
   * `url` - a valid URL for connecting with gateway
   * `adapter` - a module implementing behavior of `Janus.Transport.WS.Adapter`
