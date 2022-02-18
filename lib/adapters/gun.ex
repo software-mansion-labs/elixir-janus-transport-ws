@@ -10,10 +10,11 @@ if Code.ensure_loaded?(:gun) do
     defmodule State do
       @type t :: %__MODULE__{
               connection: pid(),
-              receiver: pid()
+              receiver: pid(),
+              stream_ref: reference()
             }
 
-      @enforce_keys [:connection, :receiver]
+      @enforce_keys [:connection, :receiver, :stream_ref]
       defstruct @enforce_keys
     end
 
@@ -58,8 +59,9 @@ if Code.ensure_loaded?(:gun) do
     def init({url, timeout, args}) do
       with [_protocol, _host, _port, _endpoint] = conn_params <- parse_url(url) do
         case create_ws_connection(conn_params, timeout, args) do
-          {:connected, conn} ->
-            {:ok, %State{connection: conn, receiver: args.message_receiver}}
+          {:connected, conn, stream_ref} ->
+            {:ok,
+             %State{connection: conn, stream_ref: stream_ref, receiver: args.message_receiver}}
 
           {:error, reason} ->
             {:stop, reason}
@@ -72,13 +74,13 @@ if Code.ensure_loaded?(:gun) do
 
     @impl GenServer
     def handle_cast(:disconnect, %State{connection: conn, receiver: receiver} = state) do
-      :ok = :gun.close(conn)
+      :ok = :gun.shutdown(conn)
       notify_status(receiver, {:disconnected, "disconnected on request"})
       {:stop, state}
     end
 
-    def handle_cast({:send, frame}, %State{connection: conn} = state) do
-      :ok = :gun.ws_send(conn, {:text, frame})
+    def handle_cast({:send, frame}, %State{connection: conn, stream_ref: ref} = state) do
+      :ok = :gun.ws_send(conn, ref, {:text, frame})
       {:noreply, state}
     end
 
@@ -144,13 +146,13 @@ if Code.ensure_loaded?(:gun) do
             %{}
           end
 
-        :gun.ws_upgrade(conn, path, extra_headers, options)
+        stream_ref = :gun.ws_upgrade(conn, path, extra_headers, options)
 
         receive do
-          {:gun_upgrade, conn, _stream_ref, ["websocket"], _headers} ->
-            {:connected, conn}
+          {:gun_upgrade, conn, ^stream_ref, ["websocket"], _headers} ->
+            {:connected, conn, stream_ref}
 
-          {:gun_response, _conn, _, _, _status, _} ->
+          {:gun_response, _conn, ^stream_ref, _is_fin, _status, _headers} ->
             {:error, :upgrade_failed}
 
           {:gun_error, _conn, _, reason} ->
