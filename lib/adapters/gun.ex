@@ -1,11 +1,14 @@
 if Code.ensure_loaded?(:gun) do
   defmodule Janus.Transport.WS.Adapters.Gun do
+    @moduledoc """
+    An adapter for WebSocket connection using `:gun` library
+    """
     use GenServer
-
     use Janus.Transport.WS.Adapter
-    alias Janus.Transport.WS.Adapter
 
     require Logger
+
+    alias Janus.Transport.WS.Adapter
 
     defmodule State do
       @type t :: %__MODULE__{
@@ -47,8 +50,10 @@ if Code.ensure_loaded?(:gun) do
       GenServer.cast(client, :disconnect)
     end
 
+    @spec start_link(Adapter.url_t(), Adapter.timeout_t(), Access.t()) :: GenServer.on_start()
     def start_link(url, timeout, args), do: do_start(:start_link, url, timeout, args)
 
+    @spec start(Adapter.url_t(), Adapter.timeout_t(), Access.t()) :: GenServer.on_start()
     def start(url, timeout, args), do: do_start(:start, url, timeout, args)
 
     defp do_start(method, url, timeout, args) do
@@ -140,10 +145,10 @@ if Code.ensure_loaded?(:gun) do
         protocol = parse_sec_protocol(extra_headers)
 
         options =
-          unless is_nil(protocol) do
-            %{protocols: [protocol]}
-          else
+          if is_nil(protocol) do
             %{}
+          else
+            %{protocols: [protocol]}
           end
 
         stream_ref = :gun.ws_upgrade(conn, path, extra_headers, options)
@@ -167,7 +172,7 @@ if Code.ensure_loaded?(:gun) do
       end
     end
 
-    def parse_sec_protocol(headers) do
+    defp parse_sec_protocol(headers) do
       sec_protocols_keys = ["sec-websocket-protocol", "Sec-WebSocket-Protocol"]
 
       protocol = headers |> Enum.find(fn {key, _val} -> key in sec_protocols_keys end)

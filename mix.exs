@@ -44,6 +44,8 @@ defmodule Elixir.Janus.Transport.WS.MixProject do
 
       # DEV
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
+      {:credo, "~> 1.6", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
 
       # TESTING
       # cowboy websocket server
