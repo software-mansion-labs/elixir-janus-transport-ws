@@ -1,19 +1,23 @@
 if Code.ensure_loaded?(:gun) do
   defmodule Janus.Transport.WS.Adapters.Gun do
+    @moduledoc """
+    An adapter for WebSocket connection using `:gun` library
+    """
     use GenServer
-
     use Janus.Transport.WS.Adapter
-    alias Janus.Transport.WS.Adapter
 
     require Logger
+
+    alias Janus.Transport.WS.Adapter
 
     defmodule State do
       @type t :: %__MODULE__{
               connection: pid(),
-              receiver: pid()
+              receiver: pid(),
+              stream_ref: reference()
             }
 
-      @enforce_keys [:connection, :receiver]
+      @enforce_keys [:connection, :receiver, :stream_ref]
       defstruct @enforce_keys
     end
 
@@ -46,8 +50,10 @@ if Code.ensure_loaded?(:gun) do
       GenServer.cast(client, :disconnect)
     end
 
+    @spec start_link(Adapter.url_t(), Adapter.timeout_t(), Access.t()) :: GenServer.on_start()
     def start_link(url, timeout, args), do: do_start(:start_link, url, timeout, args)
 
+    @spec start(Adapter.url_t(), Adapter.timeout_t(), Access.t()) :: GenServer.on_start()
     def start(url, timeout, args), do: do_start(:start, url, timeout, args)
 
     defp do_start(method, url, timeout, args) do
@@ -58,8 +64,9 @@ if Code.ensure_loaded?(:gun) do
     def init({url, timeout, args}) do
       with [_protocol, _host, _port, _endpoint] = conn_params <- parse_url(url) do
         case create_ws_connection(conn_params, timeout, args) do
-          {:connected, conn} ->
-            {:ok, %State{connection: conn, receiver: args.message_receiver}}
+          {:connected, conn, stream_ref} ->
+            {:ok,
+             %State{connection: conn, stream_ref: stream_ref, receiver: args.message_receiver}}
 
           {:error, reason} ->
             {:stop, reason}
@@ -72,13 +79,13 @@ if Code.ensure_loaded?(:gun) do
 
     @impl GenServer
     def handle_cast(:disconnect, %State{connection: conn, receiver: receiver} = state) do
-      :ok = :gun.close(conn)
+      :ok = :gun.shutdown(conn)
       notify_status(receiver, {:disconnected, "disconnected on request"})
       {:stop, state}
     end
 
-    def handle_cast({:send, frame}, %State{connection: conn} = state) do
-      :ok = :gun.ws_send(conn, {:text, frame})
+    def handle_cast({:send, frame}, %State{connection: conn, stream_ref: ref} = state) do
+      :ok = :gun.ws_send(conn, ref, {:text, frame})
       {:noreply, state}
     end
 
@@ -138,19 +145,19 @@ if Code.ensure_loaded?(:gun) do
         protocol = parse_sec_protocol(extra_headers)
 
         options =
-          unless is_nil(protocol) do
-            %{protocols: [protocol]}
-          else
+          if is_nil(protocol) do
             %{}
+          else
+            %{protocols: [protocol]}
           end
 
-        :gun.ws_upgrade(conn, path, extra_headers, options)
+        stream_ref = :gun.ws_upgrade(conn, path, extra_headers, options)
 
         receive do
-          {:gun_upgrade, conn, _stream_ref, ["websocket"], _headers} ->
-            {:connected, conn}
+          {:gun_upgrade, conn, ^stream_ref, ["websocket"], _headers} ->
+            {:connected, conn, stream_ref}
 
-          {:gun_response, _conn, _, _, _status, _} ->
+          {:gun_response, _conn, ^stream_ref, _is_fin, _status, _headers} ->
             {:error, :upgrade_failed}
 
           {:gun_error, _conn, _, reason} ->
@@ -165,7 +172,7 @@ if Code.ensure_loaded?(:gun) do
       end
     end
 
-    def parse_sec_protocol(headers) do
+    defp parse_sec_protocol(headers) do
       sec_protocols_keys = ["sec-websocket-protocol", "Sec-WebSocket-Protocol"]
 
       protocol = headers |> Enum.find(fn {key, _val} -> key in sec_protocols_keys end)

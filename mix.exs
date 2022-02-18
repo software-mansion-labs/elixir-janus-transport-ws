@@ -1,7 +1,7 @@
 defmodule Elixir.Janus.Transport.WS.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0"
   @github_url "https://github.com/software-mansion-labs/elixir-janus-transport-ws"
 
   def project do
@@ -40,10 +40,12 @@ defmodule Elixir.Janus.Transport.WS.MixProject do
 
       # adapter clients
       {:websockex, "~> 0.4.2", optional: true},
-      {:gun, "~> 1.3", optional: true},
+      {:gun, "~> 2.0-rc.2", optional: true},
 
       # DEV
-      {:ex_doc, "~> 0.22", only: [:test, :dev], runtime: false},
+      {:ex_doc, "~> 0.28", only: :dev, runtime: false},
+      {:credo, "~> 1.6", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
 
       # TESTING
       # cowboy websocket server
@@ -56,7 +58,7 @@ defmodule Elixir.Janus.Transport.WS.MixProject do
   defp package do
     [
       maintainers: ["ElixirJanus Team"],
-      licenses: ["Apache 2.0"],
+      licenses: ["Apache-2.0"],
       links: %{
         "GitHub" => @github_url
       }
@@ -67,6 +69,7 @@ defmodule Elixir.Janus.Transport.WS.MixProject do
     [
       main: "readme",
       extras: ["README.md", "LICENSE"],
+      formatters: ["html"],
       source_ref: "v#{@version}"
     ]
   end
